@@ -1,0 +1,6 @@
+Steps to successfully pushing and pulling to Github
+Step 0: Created a repository on Github 
+Step 1: cd to an existing folder or mkdir a new directory 
+Step 2: git clone <sshkey> (in case you need to disconnect: git remote rm origin) 
+Step 3: Git push or pull as you see fit  
+
