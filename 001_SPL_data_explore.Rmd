@@ -4,36 +4,76 @@ output: html_document
 date: "2024-04-16"
 ---
 
+# Clear environment and set working directory
 ```{r setup, include=FALSE}
+rm(list = ls())
+
 knitr::opts_chunk$set(echo = TRUE)
+setwd(dirname(rstudioapi::getSourceEditorContext()$path)) # makes wd wherever this file is saved, which should be the clone of the repo we've created in this case
 ```
 
-#Load required packages
+# Load required packages
 ```{r}
-rm(list=ls())
-setwd("~/Documents/PSYCH_532")
-library(httr)
-library(jsonlite)
-library(tidyverse)
-library(psych)
-library(dplyr)
-library(geojsonio)
-library(sf)
-#library(leaflet)#allowing mapping in R
+library(dplyr) # for data cleaning and manipulation
+library(readr) # for importing data from github; read_csv() function
 ```
 
-#Getting the data from the Seattle Public Life Database
+# Getting data from github repository
 ```{r}
-SPL <- GET("https://data.seattle.gov/resource/5mzj-4rtf.json?$limit=20000")
+urlfile <- "https://raw.githubusercontent.com/rachelxsong/seattle-staying-mapping/main/data_files/Public_Life_Data_-_People_Staying_20240416.csv"
+splData <- read_csv(url(urlfile))
 
-SPL #Status code 200 (success)
+# Create subset for 2018 and 2023 data
+splData_sub <- splData %>%
+  filter(study_id == "2018_Seattle_Citywide" | study_id == "2023_Seattle_Citywide")
+
+splData_2018 <- splData_sub %>%
+  filter(study_id == "2018_Seattle_Citywide")
+
+splData_2023 <- splData_sub %>%
+  filter(study_id == "2023_Seattle_Citywide")
 ```
 
-#Convert the code into character and create a sub dataset for 2018 and 2023 data----
+# Creating gender ratios by location
 ```{r}
-SPL_staying <- fromJSON(rawToChar(SPL$content))
+unique(splData_2018$staying_gender)
+# Female, Other_Unsure, Male, NA
 
-#Create a separate dataset for 2018 and 2023 data
-SPL_staying_sub <- SPL_staying%>%
-  filter(study_id=="2018_Seattle_Citywide" | study_id =="2023_Seattle_Citywide")
+unique(splData_2023$staying_gender)
+# Feminine presenting, Masculine presenting, Unsure, Gender-non-conforming presenting
+
+# Keeping only gender binary options, for both 2018 and 2023 data
+# Filter out: Other_Unsure, NA, Unsure, and Gender-non-confirming presenting
+splData_2018 <- splData_2018 %>%
+  filter(staying_gender == "Female" | 
+         staying_gender == "Male")
+
+splData_2023 <- splData_2023 %>%
+  filter(staying_gender == "Feminine presenting" | 
+         staying_gender == "Masculine presenting")
+
+# Checking the unique location IDs by each survey (2018 and 2023)
+unique(splData_2018$location_id)
+unique(splData_2023$location_id)
+
+# Need to create a table that creates women:men ratio by location ID
+## Count the # of women and # of men by location ID
+gender2018 <- table(splData_2018$location_id, splData_2018$staying_gender)
+
+gender2023 <- table(splData_2023$location_id, splData_2023$staying_gender)
+
+## Create ratio by location ID
+ratios2018 <- data.frame(location_id = rownames(gender2018), 
+                         genderRatio = gender2018[,"Female"] / gender2018[,"Male"])
+
+ratios2023 <- data.frame(location_id = rownames(gender2023), 
+                         genderRatio = gender2023[,"Feminine presenting"] / gender2023[,"Masculine presenting"])
+
+## Merge ratio by location ID
+splData_2018 <- merge(splData_2018, ratios2018, by = "location_id")
+splData_2023 <- merge(splData_2023, ratios2023, by = "location_id")
+
 ```
+
+
+
