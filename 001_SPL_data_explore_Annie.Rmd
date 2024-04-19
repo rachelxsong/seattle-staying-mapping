@@ -52,10 +52,10 @@ table(SPL_1823$gender)
 # Women/Men Ratio by location
 ```{r}
 FM_ratio <- SPL_1823%>%
-  group_by(location_id, gender)%>%
-  summarise(count= n())%>%
+  group_by(location_id, gender, study_id)%>%
+  dplyr::summarise(count= n())%>%
   pivot_wider(
-    id_cols = location_id,
+    id_cols = c(location_id, study_id),
     names_from = gender,
     values_from = count,
     names_prefix = "Observed_"
@@ -63,11 +63,12 @@ FM_ratio <- SPL_1823%>%
   mutate(
     FM_ratio = round(Observed_Fem/Observed_Masc, 2)
   )
+
 ```
 
 # Merge
 ```{r}
-SPL_1823 <- left_join(SPL_1823, FM_ratio, by="location_id")
+SPL_1823 <- left_join(SPL_1823, FM_ratio, by=c("location_id","study_id"))
 ```
 
 # Streets
