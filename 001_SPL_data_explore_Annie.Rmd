@@ -11,8 +11,6 @@ knitr::opts_chunk$set(echo = TRUE)
 # Load required packages
 ```{r}
 rm(list=ls())
-#library(httr)
-#library(jsonlite)
 library(tidyverse)
 library(psych)
 library(dplyr)
@@ -22,14 +20,12 @@ library(leaflet)
 
 # Getting the data from the Seattle Public Life Database
 ```{r}
-SPL <- read.csv("data_files/Public_Life_Data_-_People_Staying_20240416.csv")
+SPL <- read.csv("data/Public_Life_Data_-_People_Staying_20240416.csv")
 
 ```
 
 # Convert the code into character and create a sub dataset for 2018 and 2023 data
 ```{r}
-#SPL_staying <- fromJSON(rawToChar(SPL$content))
-
 #Create a separate dataset for 2018 and 2023 data
 SPL_1823 <- SPL%>%
   filter(study_id=="2018_Seattle_Citywide" | study_id =="2023_Seattle_Citywide")
@@ -62,7 +58,6 @@ unique(SPL_1823$neighborhood)
 table(SPL_1823$neighborhood)
 
 ```
-
 
 # Women/Men Ratio by location
 ```{r}
@@ -114,7 +109,7 @@ SPL_plot <- left_join(SPL_1823, Geospatial, by="location_id")%>%
 # Base map: Seattle street map
 ```{r}
 #Seattle street map
-map <- st_read("data_files/Seattle_street_map.geojson") 
+map <- st_read("data/Seattle_street_map.geojson") 
 
 #S_Hood: neighborhood
 #L_Hood: district
@@ -158,6 +153,7 @@ SPL_18 <- SPL_plot%>%
 
 #Join the city map data with 2018 filtered data ----
 merge <- left_join(map, SPL_18, by=c("S_HOOD"="neighborhood_recode"))
+
 merge_no_na <- merge[!is.na(merge$FM_ratio),]
 
 
