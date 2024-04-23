@@ -9,13 +9,11 @@ knitr::opts_chunk$set(echo = TRUE)
 ```
 
 # Load required packages
-```{r}
+```{r, message=FALSE}
 rm(list=ls())
-#library(httr)
-#library(jsonlite)
+
 library(tidyverse)
 library(psych)
-library(dplyr)
 library(sf)
 ```
 
@@ -26,56 +24,53 @@ SPL <- read.csv("data_files/Public_Life_Data_-_People_Staying_20240416.csv")
 
 # Convert the code into character and create a sub dataset for 2018 and 2023 data
 ```{r}
-#SPL_staying <- fromJSON(rawToChar(SPL$content))
-
 #Create a separate dataset for 2018 and 2023 data
 SPL_1823 <- SPL%>%
-  filter(study_id=="2018_Seattle_Citywide" | study_id =="2023_Seattle_Citywide")
+  filter(study_id == "2018_Seattle_Citywide" | study_id == "2023_Seattle_Citywide")
 ```
 
 # Rename the gender column: 
 ```{r}
+# Retrieving unique answer options for gender
+unique(SPL_1823$staying_gender)
+
+# Recoding gender var into new variable "gender"
 SPL_1823 <- SPL_1823 %>%
-  mutate(
-    gender=recode(staying_gender,
-                        "Female"="Fem",
-                        "Feminine presenting"="Fem",
-                        "Gender-non-conforming presenting" = "non_conforming",
-                        "Male"="Masc",
-                        "Masculine presenting"="Masc",
-                        "Other_Unsure"="Unsure",
-                        "Unsure"="Unsure"))
+  mutate(gender = recode(staying_gender, 
+                    "Female"                           = "Fem",
+                    "Feminine presenting"              = "Fem",
+                    "Gender-non-conforming presenting" = "non_conforming",
+                    "Male"                             = "Masc",
+                    "Masculine presenting"             = "Masc",
+                    "Other_Unsure"                     = "Unsure",
+                    "Unsure"                           = "Unsure"))
 
 table(SPL_1823$gender)
 ```
 
 # Women/Men Ratio by location
 ```{r}
-FM_ratio <- SPL_1823%>%
-  group_by(location_id, gender, study_id)%>%
-  dplyr::summarise(count= n())%>%
-  pivot_wider(
-    id_cols = c(location_id, study_id),
-    names_from = gender,
-    values_from = count,
-    names_prefix = "Observed_"
-  )%>%
-  mutate(
-    FM_ratio = round(Observed_Fem/Observed_Masc, 2)
-  )
+FM_ratio <- SPL_1823 %>%
+  group_by(location_id, gender, study_id) %>% # group data by the following variables
+  dplyr::summarise(count = n()) %>% # count the number of cases for the variables listed
+  pivot_wider(id_cols = c(location_id, study_id), # create new data frame with the following variables
+              names_from = gender,
+              values_from = count,
+              names_prefix = "Observed_") %>%
+  mutate(FM_ratio = round(Observed_Fem / Observed_Masc, 2)) # calculate fem:masc ratio, to 2 decimals
 
 ```
 
-# Merge
+# Merge FM_ratio variable to SPL data
 ```{r}
-SPL_1823 <- left_join(SPL_1823, FM_ratio, by=c("location_id","study_id"))
+SPL_1823 <- left_join(SPL_1823, FM_ratio, by = c("location_id", "study_id"))
 ```
 
-# Streets
+# Streets from SPL dataset
 ```{r}
 Geospatial <- st_read("https://data.seattle.gov/resource/v4q3-5hvp.geojson")
 
-ggplot(Geospatial)+geom_sf()
+ggplot(Geospatial) + geom_sf()
 ```
 
 # Base map: Seattle street map
@@ -86,13 +81,66 @@ map <- st_read("data_files/Seattle_street_map.geojson")
 #S_Hood: neighborhood
 #L_Hood: district
 
-ggplot(map)+geom_sf(aes(fill=L_HOOD))
+ggplot(map) + geom_sf(aes(fill = L_HOOD))
 ```
+
+# Adding link between SPL neighborhood names and Seattle street map
+```{r}
+locations <- read.csv("data_files/Public_Life_Data_-_Locations_20240422.csv")
+
+locations <- locations %>% 
+  mutate(L_HOOD = case_when(
+    grepl("ALK", location_id) ~ "West Seattle",
+    grepl("BAL", location_id) ~ "Ballard",
+    grepl("BEA", location_id) ~ "Beacon Hill",
+    grepl("BLT", location_id) ~ "Downtown",
+    grepl("BLV", location_id) ~ "Northwest",
+    grepl("BRY", location_id) ~ "Northeast",
+    grepl("CAP", location_id) ~ "Capitol Hill",
+    grepl("CID", location_id) ~ "Central Area",
+    grepl("COL", location_id) ~ "Rainier Valley",
+    grepl("COM", location_id) ~ "Downtown",
+    grepl("CRO", location_id) ~ "Northwest",
+    grepl("DEN", location_id) ~ "Downtown",
+    grepl("FHT", location_id) ~ "Downtown",
+    grepl("FRE", location_id) ~ "North Central",
+    grepl("GEO", location_id) ~ "Greater Duwamish",
+    grepl("GPR", location_id) ~ "Northwest",
+    grepl("LAK", location_id) ~ "Lake City",
+    grepl("MAG", location_id) ~ "Magnolia",
+    grepl("MAM", location_id) ~ "Capitol Hill",
+    grepl("MAP", location_id) ~ "Capitol Hill",
+    grepl("MTB", location_id) ~ "Rainier Valley",
+    grepl("NOR", location_id) ~ "Northgate",
+    grepl("OTH", location_id) ~ "Rainier Valley", # streets closest to Columbia City (coded as Rainier Valley)
+    grepl("PIK", location_id) ~ "Capitol Hill",
+    grepl("PIO", location_id) ~ "Downtown",
+    grepl("RAI", location_id) ~ "Rainier Valley",
+    grepl("RAV", location_id) ~ "Northeast",
+    grepl("RSV", location_id) ~ "Northeast",
+    grepl("SLU", location_id) ~ "Cascade",
+    grepl("SOP", location_id) ~ "Greater Duwamish",
+    grepl("TUJ", location_id) ~ "Central Area", # streets closest to Squire Park (coded as Central Area)
+    grepl("UNI", location_id) ~ "University District",
+    grepl("UPT", location_id) ~ "Queen Anne",
+    grepl("UQA", location_id) ~ "Queen Anne",
+    grepl("WAL", location_id) ~ "North Central",
+    grepl("WED", location_id) ~ "Northeast",
+    grepl("WES", location_id) ~ "West Seattle",
+    grepl("WHP", location_id) ~ "Delridge",
+    TRUE ~ location_id))
+
+# creating subset of data with only relevant variables
+locations_sub <- locations %>%
+  select(location_id, L_HOOD)
+
+# adding newly created variable to SPL dataframe
+SPL_1823 <- left_join(SPL_1823, locations_sub, by = c("location_id"))
+```
+
 
 #Layering: Geospatial data
 ```{r}
-Geospatial <- st_read("https://data.seattle.gov/resource/v4q3-5hvp.geojson")
-
 Polygon <- Geospatial$geometry
 class(Polygon) #sfc: simple feature collection
 
@@ -105,17 +153,22 @@ Polygon <- Polygon[st_is_valid(Polygon)] #Drop it? overlapping edge
 coordinates_block <- st_coordinates(st_centroid(Polygon)) 
 
 ##st_centroid computes the geomtric center of the shape
-colnames(coordinates_block) <- c("Longitude","Latitude")
+colnames(coordinates_block) <- c("Longitude", "Latitude")
 
-coordinates_block <- coordinates_block%>%
-  as.matrix()%>%
-  st_multipoint()%>%
-  st_geometry()%>%
-  st_cast(to="POINT")
+coordinates_block <- coordinates_block %>%
+  as.matrix() %>%
+  st_multipoint() %>%
+  st_geometry() %>%
+  st_cast(to = "POINT")
 
 st_crs(coordinates_block) <- 4326
 
-ggplot(map)+geom_sf()+geom_sf(data=coordinates_block, shape=18, size = 1)+labs(fill="Observation Sites")
+ggplot(map) + 
+  geom_sf() + 
+  geom_sf(data = coordinates_block,
+          shape=18,
+          size = 1) +
+  labs(fill = "Observation Sites")
 
 ```
 
