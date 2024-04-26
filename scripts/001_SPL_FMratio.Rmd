@@ -1,5 +1,5 @@
 ---
-title: "spl_staying_starter script"
+title: "001_SPL_data_cleaning"
 output: html_document
 date: "2024-04-16"
 ---
@@ -15,13 +15,13 @@ library(tidyverse)
 library(psych)
 library(dplyr)
 library(sf)
+library(here)
 library(leaflet)
 ```
 
 # Getting the data from the Seattle Public Life Database
 ```{r}
-SPL <- read.csv("data/Public_Life_Data_-_People_Staying_20240416.csv")
-
+SPL <- read.csv(here("data","03_SPL_Staying.csv"))
 ```
 
 # Convert the code into character and create a sub dataset for 2018 and 2023 data
@@ -86,12 +86,12 @@ SPL_1823 <- left_join(SPL_1823, Ratio, by=c("neighborhood","study_id"))
 ```{r}
 Geospatial <- st_read("https://data.seattle.gov/resource/v4q3-5hvp.geojson")
 
-site <- read.csv("data_files/Public_Life_Data_Locations_Specific.csv")
+site <- read.csv(here("data","02_SPL_location.csv"))
 
 #Combine Geo-spatial and site specific information
 Geospatial <- left_join(Geospatial, site, by="location_id")
 
-#ggplot(Geospatial)+geom_sf()
+#ggplot(Geospatial)+geom_sf() 
 ```
 
 # Select relevant columns 
@@ -109,7 +109,7 @@ SPL_plot <- left_join(SPL_1823, Geospatial, by="location_id")%>%
 # Base map: Seattle street map
 ```{r}
 #Seattle street map
-map <- st_read("data/Seattle_street_map.geojson") 
+map <- st_read(here("data","04_SPL_Seattle_Map.geojson"))
 
 #S_Hood: neighborhood
 #L_Hood: district
@@ -171,12 +171,6 @@ map_2018 <- ggplot() +
   )
   
 
-#  mutate(
-#  longitude=st_coordinates(st_centroid(geometry))[,1], #Extract the longitude 
-#  latitude=st_coordinates(st_centroid(geometry))[,2]   #Extract the latitude
-# )
-
-map_2018
 ```
 
 # Create 2023 map by neighborhood
@@ -220,7 +214,7 @@ map_23 <- ggplot() +
 map_23
 ```
 
-# Alternative plot (dots represent neighborhood, size represents proportion)
+# Alternative plot (dots represent block face; color represents proportion)
 ## 2018 map
 ```{r}
 # Extract the dots ----
