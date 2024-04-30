@@ -4,27 +4,31 @@ author: "Rebecca Schachtman"
 date: "4/29/2024"
 output: html_document
 ---
-
-```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+# Load libraries
+```{r}
+library(tidyverse)
 ```
 
-## R Markdown
+# Open data files
+```{r}
+#data from: https://data-seattlecitygis.opendata.arcgis.com/datasets/SeattleCityGIS::selected-demographic-and-housing-estimates-dp05/about
+demo <- read.csv(here("data","05_SPL_Demographics.csv"))
+table(demo$Community.Reporting.Area.Name)
+demo <- demo %>% mutate(neighborhood = 
+                          recode(Community.Reporting.Area.Name,
+                                 "ALK" = "Alki/Admiral",
+                                 "Arbor Heights"
+                                 BAL = "Ballard"
+                                 BEA = "Beacon Hill"
+                                 "Belltown"
+                                 "Broadview/Bitter Lake")) #working on listing out all neighborhoods
 
-This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
 
-When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
-
-```{r cars}
-summary(cars)
+staying <- read.csv(here("data", "datafordemographics.csv"))
+table(staying$location)
 ```
 
-## Including Plots
-
-You can also embed plots, for example:
-
-```{r pressure, echo=FALSE}
-plot(pressure)
+```{r}
+head(data)
 ```
 
-Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
