@@ -1,0 +1,236 @@
+---
+title: "001_SPL_data_cleaning"
+output: html_document
+date: "2024-04-16"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Load required packages
+```{r}
+rm(list=ls())
+library(tidyverse)
+library(psych)
+library(dplyr)
+library(sf)
+library(here)
+library(leaflet)
+```
+
+# Import data
+```{r}
+SPL_1823 <- read.csv(here("data","SPL_1823.csv"))
+```
+
+# Rename the gender column 
+```{r}
+SPL_1823 <- SPL_1823 %>%
+  mutate(
+    gender=recode(staying_gender,
+                        "Female"="Fem",
+                        "Feminine presenting"="Fem",
+                        "Gender-non-conforming presenting" = "non_conforming",
+                        "Male"="Masc",
+                        "Masculine presenting"="Masc",
+                        "Other_Unsure"="Unsure",
+                        "Unsure"="Unsure"))
+
+table(SPL_1823$gender)
+table(SPL_1823$staying_gender)
+```
+
+# Calculate women/men ratio by location
+```{r}
+FM_ratio <- SPL_1823 %>%
+  group_by(S_HOOD, gender, study_id) %>%
+  dplyr::summarise(count= n()) %>%
+  pivot_wider(
+    id_cols = c(S_HOOD, study_id),
+    names_from = gender,
+    values_from = count,
+    names_prefix = "Observed_"
+  ) %>%
+  mutate(FM_ratio = round(Observed_Fem/Observed_Masc, 2)) %>%
+  select(S_HOOD, study_id, FM_ratio)
+```
+
+Depending on 
+
+
+# Import geospatial data and base map
+```{r}
+SPL_1823_geo <- st_read(here("data", "SPL_1823_location.geojson"))
+SEA_map <- st_read(here("data/raw","04_SPL_Seattle_Map.geojson"))
+```
+
+# Select relevant columns 
+```{r}
+#Combine Geospatial and SPL_1823 data----
+SPL_plot <- left_join(SPL_1823, SPL_1823_geo, by="location_id") %>%
+  select(unique_staying_id,
+         subject_id, 
+         study_id,
+         location_id,
+         FM_ratio,
+         location_neighborhood,
+         S_HOOD,
+         geometry) %>%
+  dplyr::rename(locid_geo = geometry)
+
+#Join in neighborhood map
+SPL_plot <- left_join(SPL_plot, SEA_map, by="S_HOOD") %>%
+  dplyr::rename(neighborhood_geo = geometry)
+```
+
+# Create 2018 map by neighborhood
+```{r}
+# Filter 2018 data ----
+SPL_18 <- SPL_plot%>%
+  filter(study_id=="2018_Seattle_Citywide")
+
+#Join the city map data with 2018 filtered data ----
+merge <- left_join(SEA_map, SPL_18, by="S_HOOD")
+
+merge_no_na <- merge[!is.na(merge$FM_ratio),]
+merge
+
+#Plot----
+ggplot() +
+  geom_sf(data = SEA_map) +
+  geom_sf(data = SPL_18, aes(geometry = geometry, fill = FM_ratio))
+
+test <- SPL_plot[!is.na(SPL_plot$FM_ratio),]
+test
+
+ggplot(test) +
+  geom_sf(aes(geometry = neighborhood_geo, fill = FM_ratio))
+
+ggplot() +
+  geom_sf(data = merge, aes(fill = FM_ratio))
+  #geom_text(data = merge_no_na, aes(label = S_HOOD, x=longitude, y=latitude), size = 3, color = "black", check_overlap = TRUE)+ #Need to troubleshoot
+  scale_fill_gradient(name = "Female-to-male staying ratio",
+                      low = "lightblue", high = "pink", na.value = "gray",
+                      guide = guide_colorbar(title.position = "top")) +
+  labs(title = "2018 Female-to-Male Staying Ratio by Seattle Neighborhood ") +
+  theme_minimal()+
+  theme(
+    plot.title = element_text(family = "Times New Roman", size = 16, face = "bold")
+  )
+  
+map_2018
+```
+
+# Create 2023 map by neighborhood
+```{r}
+SPL_23 <- SPL_plot%>%
+  filter(study_id=="2023_Seattle_Citywide")%>%
+  mutate(
+    neighborhood_recode = recode(location_neighborhood,
+    "Capitol Hill"= "Broadway",
+    "Bitter Lake Village" = "Bitter Lake",
+    "Chinatown / ID" = "International District",    
+     "Commercial Core" = "Central Business District",
+    "First Hill / 12th Ave" = "Broadview",
+    "Lake City" = "Victory Heights",
+    "Mt Baker"= "Mount Baker",
+    "Northgate" = "Maple Leaf", 
+    "Pike/Pine" = "Pike-Market",
+    "Westwood - Highland Park"= "Highland Park",
+    "Othello" ="Columbia City",               
+    "Uptown" = "Lower Queen Anne"
+  ))%>%
+  select(neighborhood_recode,
+         FM_ratio)
+
+
+merge_23 <- left_join(map, SPL_23, by=c("S_HOOD"="neighborhood_recode"))
+
+
+map_23 <- ggplot() +
+  geom_sf(data = merge_23, aes(fill = FM_ratio)) +
+  scale_fill_gradient(name = "Female-to-male staying ratio",
+                      low = "lightblue", high = "pink", na.value = "gray",
+                      guide = guide_colorbar(title.position = "top")) +
+  labs(title = "2023 Female-to-Male Staying Ratio by Seattle Neighborhood ") +
+  theme_minimal()+
+  theme(
+    plot.title = element_text(family = "Times New Roman", size = 16, face = "bold")
+  )
+
+
+map_23
+```
+
+# Alternative plot (dots represent block face; color represents proportion)
+## 2018 map
+```{r}
+# Extract the dots ----
+Polygon <- SPL_plot%>%
+  filter(study_id=="2018_Seattle_Citywide")%>%
+  select(geometry, location_id)%>%
+  mutate(
+    Longitude = st_coordinates(st_centroid(geometry))[,1],
+    Latitude = st_coordinates(st_centroid(geometry))[,2]
+  )%>%
+  st_as_sf()
+
+# Drop the geometry----
+Polygon <- Polygon%>%
+  select(location_id, Longitude, Latitude)
+
+Polygon <- st_cast(Polygon, "POINT")
+
+ggplot(map)+
+  geom_sf()+
+  geom_sf(data=Polygon,shape=18, size = 1)+labs(fill="Observation Sites")
+
+
+#Get the FM ratio by location_id again----
+Ratio_block <- SPL_1823%>%
+  group_by(location_id, gender, study_id)%>%
+  dplyr::summarise(count= n())%>%
+  pivot_wider(
+    id_cols = c(location_id, study_id),
+    names_from = gender,
+    values_from = count,
+    names_prefix = "Observed_"
+  )%>%
+  mutate(
+    FM_ratio = round(Observed_Fem/Observed_Masc, 2)
+  )%>%
+  select(location_id, study_id, FM_ratio)
+
+
+Ratio_block_2018 <- Ratio_block%>%
+  filter(study_id=="2018_Seattle_Citywide")%>%
+  select(location_id, FM_ratio)
+
+#Merge the location dots with FM_ratio
+
+merge_block <- right_join(Ratio_block_2018, Polygon, by="location_id")%>%
+  st_as_sf()
+
+ggplot(map)+geom_sf()+
+  geom_point(data=merge_block, aes(x=Longitude, y=Latitude, color = FM_ratio),shape=20, size=4)+
+  #scale_size_continuous(range=c(1,6))+
+  scale_color_continuous(name="Female to Male Ratio",
+                        low = "lightblue", high = "darkblue")+
+  labs(fill="Observation Sites")
+
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
