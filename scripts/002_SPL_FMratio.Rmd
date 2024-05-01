@@ -83,7 +83,7 @@ FM_ratio_locid <- SPL_1823 %>%
 FM_ratio_18 <- FM_ratio %>%
   filter(study_id=="2018_Seattle_Citywide")
 
-# Join the city map with 2018 filtered data ---
+# Join the city map with 2018 filtered data ----
 FM_ratio_18_geo <- left_join(SEA_map, FM_ratio_18, by = "S_HOOD")
 
 ggplot() +
@@ -97,6 +97,9 @@ ggplot() +
   theme(
     plot.title = element_text(family = "Times New Roman", size = 16, face = "bold")
   )
+
+# Save 2018 map as an PNG in the Visualization folder ----
+ggsave(filename = "2018_FMratio_map.png", path = here("Visualization"), bg="white", height = 7, width = 7)
 ```
 
 ## 2023 map
@@ -119,6 +122,9 @@ ggplot() +
   theme(
     plot.title = element_text(family = "Times New Roman", size = 16, face = "bold")
   )
+
+# Save 2023 map as an PNG in the Visualization folder ----
+ggsave(filename = "2023_FMratio_map.png", path = here("Visualization"), bg="white", width = 7, height = 7)
 ```
 
 # Create map by dots (dots represent block face; color represents proportion)
@@ -133,13 +139,15 @@ FM_ratio_18_locid_geo <- left_join(FM_ratio_18_locid, SPL_1823_geo, by = "locati
 
 ggplot() +
   geom_sf(data = SEA_map) + #plot base SEA neighborhood map
-  geom_point(data=FM_ratio_18_locid_geo, aes(x=longitude, y=latitude, color = FM_ratio),shape=20, size=3) + # add points
+  geom_point(data=FM_ratio_18_locid_geo, aes(x=longitude, y=latitude, color = FM_ratio),shape=20, size=4) + # add points
   #scale_size_continuous(range=c(1,6))+
   scale_color_continuous(name="Female to Male Ratio",
                         low = "lightblue", high = "darkblue") +
   labs(title = "2018 Female-to-Male Staying Ratio by Observation Site") +
   labs(fill="Observation Sites")
 
+# Save Map_2018_dot in the Visualization folder ----
+ggsave(filename = "2018_FMratio_map_dot.png", path = here("Visualization"), bg="white", width = 7, height = 7)
 ```
 
 ## 2023 map
@@ -158,6 +166,10 @@ ggplot() +
                         low = "lightblue", high = "darkblue")+
   labs(title = "2023 Female-to-Male Staying Ratio by Observation Site") +
   labs(fill="Observation Sites")
+
+
+# Save Map_2023_dot in the Visualization folder ----
+ggsave(filename = "2023_FMratio_map_dot.png", path = here("Visualization"), bg="white", width = 7, height = 7)
 
 ```
 
