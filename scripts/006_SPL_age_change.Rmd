@@ -1,0 +1,201 @@
+---
+title: "004_SPL_age"
+output: html_document
+date: "2024-04-16"
+---
+
+Create variable for proportion of each age group
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Load required packages
+```{r}
+rm(list=ls())
+library(tidyverse)
+library(psych)
+library(dplyr)
+library(sf)
+library(here)
+library(leaflet)
+library(lme4)
+library(lmerTest)
+```
+
+# Import data
+```{r}
+SPL_1823 <- read.csv(here("data","SPL_1823.csv"))
+SEA_map <- st_read(here("data/raw","04_SPL_Seattle_Map.geojson")) # base SEA neighborhood map
+```
+
+# Recode the age column 
+```{r}
+# inspect age col
+table(SPL_1823$staying_age, SPL_1823$study_id)
+# looks like in 2023 they collapsed 25-44 and 45-64 together into 25-64
+
+SPL_1823 <- SPL_1823 %>%
+  mutate(
+    age=recode(staying_age,
+                        "25-44"="25-64",
+                        "45-64"="25-64"))
+
+# table(SPL_1823$age)
+# table(SPL_1823$staying_age)
+```
+
+# Calculate age proportion by neighborhood (S_HOOD)
+```{r}
+age_prop_shood <- SPL_1823 %>%
+  group_by(S_HOOD, age, study_id) %>%
+  dplyr::summarise(count= n()) %>%
+  mutate(age = ifelse(age == "", "NA", age)) %>% #replace the empty strings with NA otherwise it won't pivot
+  pivot_wider(
+    id_cols = c(S_HOOD, study_id),
+    names_from = age,
+    values_from = count) %>%
+  rowwise() %>% #this is to make sure the total is calculated correctly in the next line
+  dplyr::mutate(total = sum(`0-4`, `15-24`, `25-64`, `5-14`, `65+`, `NA`, na.rm=T)) %>% #calculate total observed
+  mutate_at(vars(`0-4`, `15-24`, `25-64`, `5-14`, `65+`, `NA`), ~replace_na(., 0)) %>% #replace NAs with 0s so that the calculated proportions return 0 and not NA
+  mutate(toddler_prop = `0-4`/total,
+         tween_prop = `5-14`/total,
+         ya_prop = `15-24`/total, #ya stands for young adult
+         adult_prop = `25-64`/total,
+         senior_prop = `65+`/total) %>%
+  select(S_HOOD, study_id, toddler_prop, tween_prop, ya_prop, adult_prop, senior_prop, total)
+```
+
+# Calculate age proportion by observation site (location_id)
+```{r}
+age_prop_locid <- SPL_1823 %>%
+  group_by(location_id, age, study_id) %>%
+  dplyr::summarise(count= n()) %>%
+  mutate(age = ifelse(age == "", "NA", age)) %>% #replace the empty strings with NA otherwise it won't pivot
+  pivot_wider(
+    id_cols = c(location_id, study_id),
+    names_from = age,
+    values_from = count) %>%
+  rowwise() %>% #this is to make sure the total is calculated correctly in the next line
+  dplyr::mutate(total = sum(`0-4`, `15-24`, `25-64`, `5-14`, `65+`, `NA`, na.rm=T)) %>% #calculate total observed
+  mutate_at(vars(`0-4`, `15-24`, `25-64`, `5-14`, `65+`, `NA`), ~replace_na(., 0)) %>% #replace NAs with 0s so that the calculated proportions return 0 and not NA
+  mutate(toddler_prop = `0-4`/total,
+         tween_prop = `5-14`/total,
+         ya_prop = `15-24`/total, #ya stands for young adult
+         adult_prop = `25-64`/total,
+         senior_prop = `65+`/total) %>%
+  select(location_id, study_id, toddler_prop, tween_prop, ya_prop, adult_prop, senior_prop, total)
+
+# append S_HOOD back
+age_prop_locid <- SPL_1823 %>%
+  select(location_id, S_HOOD) %>%
+  distinct() %>%
+  right_join(age_prop_locid, by = "location_id")
+```
+
+
+# 2018 vs 2023 comparisons
+
+## Models
+```{r}
+# raw deltas (2023 - 2018) ------------------------------
+
+# calculate prop age group change by location_id
+age_prop_locid_change <- age_prop_locid %>%
+  pivot_wider(id_cols = c(location_id, S_HOOD), names_from = study_id, values_from = c(toddler_prop, tween_prop, ya_prop, adult_prop, senior_prop)) %>%
+  rename_with(~str_remove(., '_Seattle_Citywide')) %>% # drop the suffix
+  mutate(toddler_prop_2318 = toddler_prop_2023 - toddler_prop_2018,
+         tween_prop_2318 = tween_prop_2023 - tween_prop_2018,
+         ya_prop_2318 = ya_prop_2023 - ya_prop_2018,
+         adult_prop_2318 = adult_prop_2023 - adult_prop_2018,
+         senior_prop_2318 = senior_prop_2023 - senior_prop_2018)
+
+age_prop_locid_change # a lot of missing data bc there are many age groups that aren't observed at all at certain locations
+
+which(!is.na(age_prop_locid_change$toddler_prop_2318)) # e.g., there are only 5 locations where there were toddlers observed in 2018 and 2023
+
+# calculate prop age group change by s_hoods
+age_prop_shood_change <- age_prop_shood %>%
+  pivot_wider(id_cols = S_HOOD, names_from = study_id, values_from = c(toddler_prop, tween_prop, ya_prop, adult_prop, senior_prop)) %>%
+  rename_with(~str_remove(., '_Seattle_Citywide')) %>% # drop the suffix
+  mutate(toddler_prop_2318 = toddler_prop_2023 - toddler_prop_2018,
+         tween_prop_2318 = tween_prop_2023 - tween_prop_2018,
+         ya_prop_2318 = ya_prop_2023 - ya_prop_2018,
+         adult_prop_2318 = adult_prop_2023 - adult_prop_2018,
+         senior_prop_2318 = senior_prop_2023 - senior_prop_2018)
+
+age_prop_shood_change
+
+# random effects model ------------------------------------
+
+## observations aggregated at location_id level
+r1_toddlerprop <- lmer(toddler_prop ~ study_id + (1|location_id), data = age_prop_locid)
+summary(r1_toddlerprop)
+
+r1_tweenprop <- lmer(tween_prop ~ study_id + (1|location_id), data = age_prop_locid)
+summary(r1_tweenprop)
+
+r1_yaprop <- lmer(ya_prop ~ study_id + (1|location_id), data = age_prop_locid)
+summary(r1_yaprop)
+
+r1_adultprop <- lmer(adult_prop ~ study_id + (1|location_id), data = age_prop_locid)
+summary(r1_adultprop)
+
+r1_seniorprop <- lmer(senior_prop ~ study_id + (1|location_id), data = age_prop_locid)
+summary(r1_seniorprop)
+
+## observations aggregated at S_HOOD level
+r2_toddlerprop <- lmer(toddler_prop ~ study_id + (1|S_HOOD), data = age_prop_locid)
+summary(r2_toddlerprop)
+
+r2_tweenprop <- lmer(tween_prop ~ study_id + (1|S_HOOD), data = age_prop_locid)
+summary(r2_tweenprop)
+
+r2_yaprop <- lmer(ya_prop ~ study_id + (1|S_HOOD), data = age_prop_locid)
+summary(r2_yaprop)
+
+r2_adultprop <- lmer(adult_prop ~ study_id + (1|S_HOOD), data = age_prop_locid)
+summary(r2_adultprop)
+
+r2_seniorprop <- lmer(senior_prop ~ study_id + (1|S_HOOD), data = age_prop_locid)
+summary(r2_seniorprop)
+
+```
+
+## Plots
+
+```{r}
+ggplot(age_prop_locid_change, aes(x = toddler_prop_2018, y = toddler_prop_2023, colour = S_HOOD)) +
+  geom_point() +
+  geom_abline(slope = 1, linetype="dotted") +
+  coord_cartesian(xlim = c(0, 0.1), ylim = c(0, 0.1))
+
+
+ggplot(age_prop_locid_change, aes(x = tween_prop_2018, y = tween_prop_2023, colour = S_HOOD)) +
+  geom_point() +
+  geom_abline(slope = 1, linetype="dotted") +
+  coord_cartesian(xlim = c(0, 0.2), ylim = c(0, 0.2))
+
+
+ggplot(age_prop_locid_change, aes(x = ya_prop_2018, y = ya_prop_2023, colour = S_HOOD)) +
+  geom_point() +
+  geom_abline(slope = 1, linetype="dotted") +
+  coord_cartesian(xlim = c(0, 0.5), ylim = c(0, 0.5))
+
+ggplot(age_prop_locid_change, aes(x = adult_prop_2018, y = adult_prop_2023, colour = S_HOOD)) +
+  geom_point() +
+  geom_abline(slope = 1, linetype="dotted") +
+  coord_cartesian(xlim = c(0, 1), ylim = c(0, 1))
+
+ggplot(age_prop_locid_change, aes(x = senior_prop_2018, y = senior_prop_2023, colour = S_HOOD)) +
+  geom_point() +
+  geom_abline(slope = 1, linetype="dotted") +
+  coord_cartesian(xlim = c(0, 0.75), ylim = c(0, 0.75))
+```
+
+
+
+
+
+
+

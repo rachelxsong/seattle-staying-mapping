@@ -122,10 +122,9 @@ FM_prop_locid <- SPL_1823 %>%
 ```
 
 
-
 # 2018 vs 2023 comparisons
 
-## Models
+## Descriptive Change
 ```{r}
 # raw deltas (2023 - 2018) ------------------------------
 
@@ -141,7 +140,7 @@ FM_prop_locid_change <- FM_prop_locid %>%
   mutate(F_prop_2318 = F_prop_2023 - F_prop_2018,
          M_prop_2318 = M_prop_2023 - M_prop_2018)
 
-count(which(!is.na(FM_prop_locid_change$F_prop_2318)))
+FM_prop_locid_change %>% arrange(location_id)
 
 # prop women and women by s_hoods
 FM_prop_shood_change <- FM_prop_shood %>%
@@ -151,14 +150,17 @@ FM_prop_shood_change <- FM_prop_shood %>%
          M_prop_2318 = M_prop_2023 - M_prop_2018)
 
 FM_prop_shood_change
+```
 
+## Random Effects Model
+```{r}
 # random effects model ------------------------------------
 
 ## observations aggregated at location_id level
 r1_fprop <- lmer(F_prop ~ study_id + (1|location_id), data = FM_prop_locid)
 summary(r1_fprop)
 
-r1_mprop <- lmer(M_prop ~ study_id + (1|S_HOOD), data = FM_prop_locid)
+r1_mprop <- lmer(M_prop ~ study_id + (1|location_id), data = FM_prop_locid)
 summary(r1_mprop)
 
 ## observations aggregated at S_HOOD level
@@ -169,21 +171,59 @@ r2_mprop <- lmer(M_prop ~ study_id + (1|S_HOOD), data = FM_prop_shood)
 summary(r2_mprop)
 ```
 
+## Correlation
+
+```{r}
+FM_prop_locid_change %>%
+  filter(!is.na(F_prop_2318)) %>%
+  corr.test(x = F_prop_2018, y = F_prop_2023)
+```
+
+
 ## Plots
 
 ```{r}
-ggplot(FM_prop_locid_change, aes(x = F_prop_2018, y = F_prop_2023, colour = S_HOOD)) +
+# plot location_id
+
+## fem proportion
+FM_prop_locid_change %>%
+  filter(!is.na(F_prop_2318)) %>%
+  ggplot(., aes(x = F_prop_2018, y = F_prop_2023, colour = S_HOOD)) +
   geom_point() +
   geom_abline(slope = 1, linetype="dotted") +
-  coord_cartesian(xlim = c(0.2, 1), ylim = c(0.2,1))
+  coord_cartesian(xlim = c(0, 1), ylim = c(0, 1)) +
+  guides(colour = guide_legend(ncol = 2))
 
-FM_prop_locid_change
-
-
-ggplot(FM_prop_locid_change, aes(x = M_prop_2018, y = M_prop_2023, colour = S_HOOD)) +
+## masc proportion
+FM_prop_locid_change %>%
+  filter(!is.na(M_prop_2318)) %>%
+  ggplot(., aes(x = M_prop_2018, y = M_prop_2023, colour = S_HOOD)) +
   geom_point() +
   geom_abline(slope = 1, linetype="dotted") +
-  coord_cartesian(xlim = c(0.2, 1), ylim = c(0.2,1))
+  coord_cartesian(xlim = c(0, 1), ylim = c(0, 1)) +
+  guides(colour = guide_legend(ncol = 2))
+
+# plot s_hoods
+
+## fem proportion
+FM_prop_shood_change %>%
+  filter(!is.na(F_prop_2318)) %>%
+  ggplot(., aes(x = F_prop_2018, y = F_prop_2023, colour = S_HOOD)) +
+  geom_point() +
+  geom_abline(slope = 1, linetype="dotted") +
+  coord_cartesian(xlim = c(0, 1), ylim = c(0, 1)) +
+  guides(colour = guide_legend(ncol = 2))
+
+### note - why are some dots representing the same locations moving between the locid and shood plots? e.g., rainier beach - RAI2 has 2018 and 2023 data, but RAI1 only has 2023 data. the locid plot is plotting just RAI2, but shood plot averages across years for each shood so it's plotting RAI2 2018 and 2023 is the average between RAI1 and RAI2.
+
+## masc proportion
+FM_prop_shood_change %>%
+  filter(!is.na(M_prop_2318)) %>%
+  ggplot(., aes(x = M_prop_2018, y = M_prop_2023, colour = S_HOOD)) +
+  geom_point() +
+  geom_abline(slope = 1, linetype="dotted") +
+  coord_cartesian(xlim = c(0, 1), ylim = c(0, 1)) +
+  guides(colour = guide_legend(ncol = 2))
 ```
 
 

@@ -30,6 +30,9 @@ library(leaflet)
 SPL <- read.csv(here("data/raw","03_SPL_Staying.csv")) # main dataset with SPL staying observations
 SPL_sites <- read.csv(here("data/raw","02_SPL_location.csv")) # SPL location_id info
 geo_SPL_locationids <- st_read(here("data/raw", "01_SPL_Geography.geojson")) # shapefile data with location_id polygons
+
+geo_SHOODs <- st_read(here("data/raw", "04_SPL_Seattle_Map.geojson"))
+
 ```
 
 # Subset dataset for 2018 and 2023 data
@@ -59,7 +62,7 @@ SPL_1823$location_neighborhood[which(SPL_1823$location_id == "FHT5")] <- "First 
 # Rename neighborhoods to match the names in the geospatial data (S_HOOD)
 SPL_1823 <- SPL_1823 %>%
   mutate(S_HOOD = recode(location_neighborhood,
-                          "23rd & Union - Jackson" = "Pinehurst",
+                          "23rd & Union - Jackson" = "Pinehurst", #change this
                           "Capitol Hill" = "Broadway",
                           "Bitter Lake Village" = "Bitter Lake",
                           "Magnolia" = "Carleton Park",
