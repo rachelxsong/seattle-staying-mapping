@@ -1,7 +1,7 @@
 ---
 title: "005_SPL_FMpropr"
 output: html_document
-date: "2024-04-16"
+date: "2024-05-17"
 ---
 
 Recodes gender, calculates proportion of female and male by location_id, and maps the dot map
@@ -58,12 +58,14 @@ FM_prop_shood <- SPL_1823 %>%
     names_prefix = "Observed_"
   ) %>%
   rowwise() %>% #this is to make sure the total is calculated correctly in the next line
-  dplyr::mutate(total = sum(c_across(Observed_Fem:Observed_non_conforming), na.rm=T)) %>% #calculate total observed
+  dplyr::mutate(total = sum(c_across(Observed_Fem:Observed_non_conforming), na.rm=T)) %>% #calculate total observed, including observations where no one was observed!
+  mutate_at(vars(Observed_Fem, Observed_Masc, Observed_non_conforming, Observed_Unsure), ~replace_na(., 0)) %>% #replace NAs with 0s so that the calculated proportions return 0 and not NA
   mutate(F_prop = Observed_Fem/total,
          M_prop = Observed_Masc/total) %>%
-  select(S_HOOD, study_id, F_prop, M_prop, Observed_Fem, total)
+  select(S_HOOD, study_id, F_prop, M_prop, Observed_Fem, Observed_Masc, total)
 
 FM_prop_shood
+# note that the total is the sum of fem, masc, non_conforming, unsure, and empty observations (i.e., empty locations where no one was staying at all). this is why e.g., Bitter Lake in 2018 has 1 fem, 0 masc, and 16 total observations
 ```
 
 # Calculate proportion women or men by observation site (location_id)
@@ -81,9 +83,10 @@ FM_prop_locid <- SPL_1823 %>%
   ) %>%
   rowwise() %>% #this is to make sure the total is calculated correctly in the next line
   dplyr::mutate(total = sum(c_across(Observed_Fem:Observed_non_conforming), na.rm=T)) %>% #calculate total observed
+  mutate_at(vars(Observed_Fem, Observed_Masc, Observed_non_conforming, Observed_Unsure), ~replace_na(., 0)) %>% #replace NAs with 0s so that the calculated proportions return 0 and not NA
   mutate(F_prop = Observed_Fem/total,
          M_prop = Observed_Masc/total) %>%
-  select(location_id, study_id, F_prop, M_prop, total)
+  select(location_id, study_id, F_prop, M_prop, Observed_Fem, Observed_Masc, total)
 
 # append S_HOOD back
 FM_prop_locid <- SPL_1823 %>%
@@ -91,7 +94,9 @@ FM_prop_locid <- SPL_1823 %>%
   distinct() %>%
   right_join(FM_prop_locid, by = "location_id")
 
-FM_prop_locid ## check that the new 2023 location_ids are here BLT5, PIK5, BLV3, PIK6, HPT1, PIO21, PIO20, HPT2, CAP5, COM5, COM6, COM7, COM8, FHT5 - yep!
+FM_prop_locid
+# again, note that the total is the sum of fem, masc, non_conforming, unsure, and empty observations (i.e., empty locations where no one was staying at all). this is why e.g., BLV1 in 2018 has 1 fem, 0 masc, and 8 total observations
+
 ```
 
 # Create map by dots - Annie to create template
