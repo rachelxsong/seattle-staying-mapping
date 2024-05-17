@@ -61,7 +61,7 @@ SPL_1823$location_neighborhood[which(SPL_1823$location_id == "FHT5")] <- "First 
 # Rename neighborhoods to match the names in the geospatial data (S_HOOD)
 SPL_1823 <- SPL_1823 %>%
   mutate(S_HOOD = recode(location_neighborhood,
-                          "23rd & Union - Jackson" = "Pinehurst",
+                          "23rd & Union - Jackson" = "Leschi", #Not a perfect match, but went with Leschi
                           "Capitol Hill" = "Broadway",
                           "Bitter Lake Village" = "Bitter Lake",
                           "Magnolia" = "Carleton Park",
@@ -72,7 +72,7 @@ SPL_1823 <- SPL_1823 %>%
                           "Othello" = "Columbia City",                
                           "Madison Miller" = "Stevens",
                           "Uptown" = "Lower Queen Anne",
-                          "First Hill / 12th Ave" = "Broadview",
+                          "First Hill / 12th Ave" = "First Hill",
                           "West Seattle Junction" = "Gatewood",
                           "Commercial Core" = "Central Business District",
                           "Mt Baker"= "Mount Baker",              
