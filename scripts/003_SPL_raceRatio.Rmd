@@ -109,7 +109,7 @@ ggplot() +
   )
 
 # Save 2018 map as an PNG in the Visualization folder ----
-ggsave(filename = "2018_raceRatio_map.png", path = here("Visualization"), bg="white", height = 7, width = 7)
+#ggsave(filename = "2018_raceRatio_map.png", path = here("Visualization"), bg="white", height = 7, width = 7)
 ```
 
 # Create map by dots (dots represent block face; color represents proportion)
