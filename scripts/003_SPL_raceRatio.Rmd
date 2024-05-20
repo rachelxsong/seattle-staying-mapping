@@ -84,7 +84,27 @@ race_prop_locid <- SPL_18 %>%
 
 # Join location_id coordinates with 2018 filtered data
 ```{r}
+<<<<<<< HEAD
 race_prop_18_locid_geo <- left_join(race_prop_locid, SPL_1823_geo, by = "location_id")
+=======
+# Join the city map with 2018 filtered data ----
+race_ratio_18_geo <- left_join(SEA_map, race_ratio, by = "S_HOOD")
+
+ggplot() +
+  geom_sf(data = race_ratio_18_geo, aes(fill = race_ratio)) +
+  # geom_text(data = FM_ratio_18_geo, aes(label = S_HOOD, x=longitude, y=latitude), size = 3, color = "black", check_overlap = TRUE)+ #Need to troubleshoot
+  scale_fill_gradient(name = "URM-to-White staying ratio",
+                      low = "lightblue", high = "darkblue", na.value = "gray",
+                      guide = guide_colorbar(title.position = "top")) +
+  labs(title = "2018 URM-to-White Staying Ratio by Seattle Neighborhood ") +
+  theme_minimal()+
+  theme(
+    plot.title = element_text(family = "Times New Roman", size = 16, face = "bold")
+  )
+
+# Save 2018 map as an PNG in the Visualization folder ----
+#ggsave(filename = "2018_raceRatio_map.png", path = here("Visualization"), bg="white", height = 7, width = 7)
+>>>>>>> 95c7e34b74536ba459af2e32e786a82e97262890
 ```
 
 
