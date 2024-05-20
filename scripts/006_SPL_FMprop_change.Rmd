@@ -19,6 +19,8 @@ library(dplyr)
 library(sf)
 library(here)
 library(leaflet)
+library(lme4)
+library(lmerTest)
 ```
 
 # Import data
@@ -112,7 +114,7 @@ FM_prop_locid_change <- FM_prop_locid %>%
   mutate(F_prop_2318 = F_prop_2023 - F_prop_2018,
          M_prop_2318 = M_prop_2023 - M_prop_2018)
 
-FM_prop_locid_change %>% arrange(location_id)
+FM_prop_locid_change %>% arrange(location_id) %>% mutate(across(where(is.numeric), round, 3))
 
 # prop women and women by s_hoods
 FM_prop_shood_change <- FM_prop_shood %>%
@@ -121,84 +123,96 @@ FM_prop_shood_change <- FM_prop_shood %>%
   mutate(F_prop_2318 = F_prop_2023 - F_prop_2018,
          M_prop_2318 = M_prop_2023 - M_prop_2018)
 
-FM_prop_shood_change
+FM_prop_shood_change %>% mutate(across(where(is.numeric), round, 3))
 ```
-
-## Random Effects Model
-```{r}
-# random effects model ------------------------------------
-
-## observations aggregated at location_id level
-r1_fprop <- lmer(F_prop ~ study_id + (1|location_id), data = FM_prop_locid)
-summary(r1_fprop)
-
-r1_mprop <- lmer(M_prop ~ study_id + (1|location_id), data = FM_prop_locid)
-summary(r1_mprop)
-
-## observations aggregated at S_HOOD level
-r2_fprop <-  lmer(F_prop ~ study_id + (1|S_HOOD), data = FM_prop_shood)
-summary(r2_fprop)
-
-r2_mprop <- lmer(M_prop ~ study_id + (1|S_HOOD), data = FM_prop_shood)
-summary(r2_mprop)
-```
-
-## Correlation
-
-```{r}
-FM_prop_locid_change %>%
-  filter(!is.na(F_prop_2318)) %>%
-  corr.test(x = F_prop_2018, y = F_prop_2023)
-```
-
 
 ## Plots
 
+### Scatter x = year, y = proportion
 ```{r}
-# plot location_id
+# location_id level ---------------------------------------------
 
-## fem proportion
-FM_prop_locid_change %>%
-  filter(!is.na(F_prop_2318)) %>%
-  ggplot(., aes(x = F_prop_2018, y = F_prop_2023, colour = S_HOOD)) +
+## fem prop
+FM_prop_locid %>%
+  ggplot(., aes(x = study_id, y = F_prop, colour = location_id)) +
   geom_point() +
-  geom_abline(slope = 1, linetype="dotted") +
-  coord_cartesian(xlim = c(0, 1), ylim = c(0, 1)) +
-  guides(colour = guide_legend(ncol = 2))
+  geom_line(aes(group = location_id)) +
+  coord_cartesian(ylim = c(0, 1)) +
+  theme(legend.position = "none")
 
-## masc proportion
-FM_prop_locid_change %>%
-  filter(!is.na(M_prop_2318)) %>%
-  ggplot(., aes(x = M_prop_2018, y = M_prop_2023, colour = S_HOOD)) +
+## masc prop
+FM_prop_locid %>%
+  ggplot(., aes(x = study_id, y = M_prop, colour = location_id)) +
   geom_point() +
-  geom_abline(slope = 1, linetype="dotted") +
-  coord_cartesian(xlim = c(0, 1), ylim = c(0, 1)) +
-  guides(colour = guide_legend(ncol = 2))
-
-# plot s_hoods
-
-## fem proportion
-FM_prop_shood_change %>%
-  filter(!is.na(F_prop_2318)) %>%
-  ggplot(., aes(x = F_prop_2018, y = F_prop_2023, colour = S_HOOD)) +
-  geom_point() +
-  geom_abline(slope = 1, linetype="dotted") +
-  coord_cartesian(xlim = c(0, 1), ylim = c(0, 1)) +
-  guides(colour = guide_legend(ncol = 2))
-
-### note - why are some dots representing the same locations moving between the locid and shood plots? e.g., rainier beach - RAI2 has 2018 and 2023 data, but RAI1 only has 2023 data. the locid plot is plotting just RAI2, but shood plot averages across years for each shood so it's plotting RAI2 2018 and 2023 is the average between RAI1 and RAI2.
-
-## masc proportion
-FM_prop_shood_change %>%
-  filter(!is.na(M_prop_2318)) %>%
-  ggplot(., aes(x = M_prop_2018, y = M_prop_2023, colour = S_HOOD)) +
-  geom_point() +
-  geom_abline(slope = 1, linetype="dotted") +
-  coord_cartesian(xlim = c(0, 1), ylim = c(0, 1)) +
-  guides(colour = guide_legend(ncol = 2))
+  geom_line(aes(group = location_id)) +
+  coord_cartesian(ylim = c(0, 1)) +
+  theme(legend.position = "none")
 ```
 
 
+### Scatter x = 2018 proportion, y = 2023 proportion
+```{r}
+# location_id ------------------------------------------------
+
+## fem proportion
+FM_prop_locid_change %>%
+  filter(!is.na(F_prop_2318)) %>%
+  ggplot(., aes(x = F_prop_2018, y = F_prop_2023, colour = S_HOOD)) +
+  geom_point() +
+  geom_abline(slope = 1, linetype="dotted") +
+  coord_cartesian(xlim = c(0, 1), ylim = c(0, 1)) +
+  guides(colour = guide_legend(ncol = 2))
+
+## masc proportion
+FM_prop_locid_change %>%
+  filter(!is.na(M_prop_2318)) %>%
+  ggplot(., aes(x = M_prop_2018, y = M_prop_2023, colour = S_HOOD)) +
+  geom_point() +
+  geom_abline(slope = 1, linetype="dotted") +
+  coord_cartesian(xlim = c(0, 1), ylim = c(0, 1)) +
+  guides(colour = guide_legend(ncol = 2))
+
+# plot s_hoods ---------------------------------------------------
+
+# ## fem proportion
+# FM_prop_shood_change %>%
+#   filter(!is.na(F_prop_2318)) %>%
+#   ggplot(., aes(x = F_prop_2018, y = F_prop_2023, colour = S_HOOD)) +
+#   geom_point() +
+#   geom_abline(slope = 1, linetype="dotted") +
+#   coord_cartesian(xlim = c(0, 1), ylim = c(0, 1)) +
+#   guides(colour = guide_legend(ncol = 2))
+# 
+# ### note - why are some dots representing the same locations moving between the locid and shood plots? e.g., rainier beach - RAI2 has 2018 and 2023 data, but RAI1 only has 2023 data. the locid plot is plotting just RAI2, but shood plot averages across years for each shood so it's plotting RAI2 2018 and 2023 is the average between RAI1 and RAI2.
+# 
+# ## masc proportion
+# FM_prop_shood_change %>%
+#   filter(!is.na(M_prop_2318)) %>%
+#   ggplot(., aes(x = M_prop_2018, y = M_prop_2023, colour = S_HOOD)) +
+#   geom_point() +
+#   geom_abline(slope = 1, linetype="dotted") +
+#   coord_cartesian(xlim = c(0, 1), ylim = c(0, 1)) +
+#   guides(colour = guide_legend(ncol = 2))
+```
+
+## Random Effects Model
+
+```{r}
+# observations are aggregated at location_id level
+
+# fem proportion
+## control for within location dependency by clustering
+r1_fprop <- lmer(F_prop ~ study_id + (1|location_id), REML=FALSE, data = FM_prop_locid)
+summary(r1_fprop)
+
+## also cluster at the s_hood level - BICs aren't substantively different... let's stick with the simpler model
+# r2_fprop <- lmer(F_prop ~ study_id + (1|S_HOOD/location_id), REML=FALSE, data = FM_prop_locid)
+# summary(r2_fprop)
+
+# masc proportion
+r1_mprop <- lmer(M_prop ~ study_id + (1|location_id), REML=FALSE, data = FM_prop_locid)
+summary(r1_mprop)
+```
 
 
 
