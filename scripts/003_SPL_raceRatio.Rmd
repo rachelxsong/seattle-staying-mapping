@@ -241,7 +241,7 @@ p <- ggplot() +
                          high = "darkblue",
                          limits = c(0,1),
                          labels = label_number(accuracy = 0.01)) +
-  labs(title = "2018 White Staying Proportion by Observation Site") +
+  labs(title = "2018 Percentage of White People Staying by Observation Site") +
   labs(fill="Observation Sites")
 
 
