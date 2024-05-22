@@ -17,6 +17,8 @@ library(tidyverse)
 library(sf)
 library(here)
 library(scales) # to edit decimal places shown in legend
+library(plotly)
+library(htmlwidgets)
 ```
 
 # Import data
@@ -78,7 +80,7 @@ race_prop_locid <- SPL_18 %>%
          Multi_prop  = round(Observed_M/total_count, 2),
          NatAm_prop  = round(Observed_N/total_count, 2),
          White_prop  = round(Observed_W/total_count, 2)) %>%
-  select(location_id, Asian_prop, Black_prop, Latinx_prop, Multi_prop, NatAm_prop, White_prop)
+  select(location_id, Asian_prop, Black_prop, Latinx_prop, Multi_prop, NatAm_prop, White_prop, total_count) # Adding the total count for the interactive plots
 ```
 
 # Join location_id coordinates with 2018 filtered data
@@ -109,6 +111,7 @@ ggplot() +
 # Save Map_2018_dot in the Visualization folder ----
 ggsave(filename = "2018_raceRatio_Asian_map_dot.png", path = here("Visualization"), bg="white", width = 7, height = 7)
 ```
+
 
 ## 2018 map - Black
 ```{r}
@@ -214,3 +217,52 @@ ggplot() +
 # Save Map_2018_dot in the Visualization folder ----
 ggsave(filename = "2018_raceRatio_White_map_dot.png", path = here("Visualization"), bg="white", width = 7, height = 7)
 ```
+
+## 2018 race - interactive plot
+```{r}
+p <- ggplot() +
+  geom_sf(data = SEA_map) + #plot base SEA neighborhood map
+  geom_point(data = race_prop_18_locid_geo, 
+             aes(x = longitude, y = latitude, color = White_prop,
+             text = paste(
+             "Block Face: ", location_id, 
+             "<br>Percentage of White: ", round(White_prop,2), 
+             "<br>Percentage of Black: ", round(Black_prop,2),
+             "<br>Percentage of Asian: ", round(Asian_prop,2),
+             "<br>Percentage of Latinx: ", round(Latinx_prop,2),
+             "<br>Percentage of Native American: ", round(NatAm_prop,2),
+             "<br>Percentage of Multiracial: ", round(Multi_prop,2),
+             "<br>Total observation: ", total_count)), 
+             shape = 20, 
+             size = 4, 
+             alpha = 0.85)+
+  scale_color_continuous(name="Percentage of White People Staying",
+                         low = "lightblue", 
+                         high = "darkblue",
+                         limits = c(0,1),
+                         labels = label_number(accuracy = 0.01)) +
+  labs(title = "2018 White Staying Proportion by Observation Site") +
+  labs(fill="Observation Sites")
+
+
+p <- ggplotly(, tooltip = "text")
+saveWidget(p, here("Interactive", "2018_Race_interactive.html"), selfcontained = FALSE, libdir = "libs")
+
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
