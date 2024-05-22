@@ -1,0 +1,19 @@
+The main ethical issue with using the Seattle Public Life data is that “participants” in these 
+large datasets did not consent to being part of the study. The metadata document states that the 
+study “completed a Privacy Assessment through the City of Seattle IT Department” (page 3 of 
+metadata document). While this takes a legal route to ensuring participants’ privacy is not 
+disrupted, participants were never informed nor could consent to being recorded at the various 
+public locations in Seattle. As users of this public dataset, there is not much we can do to 
+change the beneficence or justice requirements laid out in Paxton (2020). However, we only 
+analyze the dataset by one demographic at a time, to reduce the chances of identifying specific 
+participants. 
+ As researchers, we have sought to represent participants’ unique experiences based on several 
+demographic variables: gender, race, and age. In earlier iterations of our graphs, we had simply 
+collapsed demographic variables into a single marker that only considered the largest subgroups 
+of participants (i.e., female-to-male ratio, underrepresented minority-to-White ratio). We 
+realized that this erased the experiences of non-binary people (for the gender variable) and 
+lumped all people of color into one group (for the race variable). Our group decided that 
+although it would significantly increase the number of visualizations our team produced, we 
+would create visualizations for the percentage of each subgroup throughout Seattle. This meant 
+creating maps for each level of the gender, race, and age variables - totaling 14 visualizations 
+instead of 3.
