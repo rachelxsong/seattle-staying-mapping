@@ -22,8 +22,8 @@ This project uses data from the Seattle Public Life Study to map changes in publ
 * Seattle Public Life Study metadata: https://data.seattle.gov/api/views/5mzj-4rtf/files/1be2e294-248d-49fb-99d7-7325e4b083f5?download=true&filename=public_life_metadata.pdf
 * Seattle Public Life study 2018 Summary Report: https://www.seattle.gov/documents/Departments/SDOT/UrbanDesignProgram/PublicLifeStudy_2018Summary_Report2%280%29.pdf
 
-# Interactive plot
-* 2018 Female-to-male staying ratio by observation sites: https://anniexu0116.github.io/Mapping_trial/
+# Interactive plots
+* You can find all interactive plots here: https://anniexu0116.github.io/Mapping_trial/
 
 
 
