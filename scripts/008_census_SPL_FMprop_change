@@ -1,0 +1,214 @@
+---
+title: "008_census_FMprop_change"
+author: "Rebecca Schachtman"
+date: "5/23/2024"
+output: html_document
+---
+
+Plot change in FM proportions between 2018 and 2023
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Load required packages
+```{r}
+rm(list=ls())
+library(tidyverse)
+library(here)
+library(gridExtra)
+library(cowplot)
+```
+
+# Import data
+```{r}
+census_2022 <- read.csv(here("data","census_SPL_combined.csv"))
+```
+
+# Calculate proportion women or men by neighborhood (S_HOOD)
+```{r}
+# Calculate the proportion of total pop per S_HOOD and year that are women/men
+FM_prop_shood <- census_2022 %>%
+  group_by(S_HOOD, ACS.Vintage) %>%
+  mutate(F_prop = Female.x/Total.population.x,
+         M_prop = Male.x/Total.population.x)
+```
+
+# There were only some S_HOODS with data for both years (bc census 2020 was a big overall census, and 2022 was smaller), so create dataframe that only has neighborhoods where data were collected both years
+```{r}
+# Group by neighborhood and count unique years
+neighborhood_year_counts <- FM_prop_shood %>%
+  group_by(S_HOOD) %>%
+  summarise(unique_years = n_distinct(ACS.Vintage))
+
+# Filter neighborhoods with only 2 unique years
+neighborhoods_with_both_years <- neighborhood_year_counts %>%
+  filter(unique_years == 2) %>%
+  pull(S_HOOD)
+
+# Filter original df to include only the neighborhoods with both years
+ filt_FM_prop_shood <- FM_prop_shood %>%
+  filter(S_HOOD %in% neighborhoods_with_both_years)
+ 
+## Left with 11 neighborhoods ##
+```
+
+# 2020 (2018) vs 2022 (2023) comparisons
+
+## Descriptive Change
+```{r}
+# raw deltas (2020 - 2022) ------------------------------
+
+# Make a smaller dataframe that includes just the census data columns and one row per neighborhood and year
+FM_prop_shood_change <- filt_FM_prop_shood %>% 
+  select(S_HOOD, neighborhood, Total.population.x:M_prop) %>%
+  distinct(S_HOOD, .keep_all = TRUE)
+
+# M_prop change per neighborhood
+FM_prop_shood_change %>% group_by(S_HOOD) %>%
+  summarise(M_prop_change = M_prop[ACS.Vintage == '5Y22'] - M_prop[ACS.Vintage == '5Y20'])
+
+# F_prop change per neighborhood
+FM_prop_shood_change %>% group_by(S_HOOD) %>%
+  summarise(F_prop_change = F_prop[ACS.Vintage == '5Y22'] - F_prop[ACS.Vintage == '5Y20'])
+```
+
+
+## Plots
+
+### Scatter x = year, y = proportion
+```{r}
+# S_HOOD level ---------------------------------------------
+
+## changing grouping variables to factors
+FM_prop_shood_change$ACS.Vintage <- as.factor(FM_prop_shood_change$ACS.Vintage)
+FM_prop_shood_change$S_HOOD <- as.factor(FM_prop_shood_change$S_HOOD)
+
+## fem prop
+F_census <-
+  FM_prop_shood_change %>%
+  ggplot(., aes(x = ACS.Vintage, y = F_prop, colour = S_HOOD)) +
+  geom_point() +
+  geom_line(aes(group = S_HOOD)) +
+  coord_cartesian(ylim = c(0, 1)) +
+  labs(x = "Year", y = "Proportion of women", title = "Census Data") +
+  scale_x_discrete(labels = c("2020", "2022"))
+
+## masc prop
+M_census <-
+  FM_prop_shood_change %>%
+  ggplot(., aes(x = ACS.Vintage, y = M_prop, colour = S_HOOD)) +
+  geom_point() +
+  geom_line(aes(group = S_HOOD)) +
+  coord_cartesian(ylim = c(0, 1)) +
+  labs(x = "Year", y = "Proportion of men", title = "Census Data") +
+  scale_x_discrete(labels = c("2020", "2022"))
+
+```
+### Make plots with staying data for side by side comparison  
+(Start with Rachel's code)
+# Import data
+```{r}
+SPL_1823 <- read.csv(here("data","SPL_1823.csv"))
+```
+
+# Recode the gender column 
+```{r}
+SPL_1823 <- SPL_1823 %>%
+  mutate(
+    gender=recode(staying_gender,
+                        "Female"="Fem",
+                        "Feminine presenting"="Fem",
+                        "Gender-non-conforming presenting" = "non_conforming",
+                        "Male"="Masc",
+                        "Masculine presenting"="Masc",
+                        "Other_Unsure"="Unsure",
+                        "Unsure"="Unsure"))
+```
+
+# Calculate proportion women or men by neighborhood (S_HOOD)
+```{r}
+# instead of doing a f:m ratio, calculate the proportion of total observed that are women/men
+SPL_FM_prop_shood <- SPL_1823 %>%
+  group_by(S_HOOD, gender, study_id) %>%
+  dplyr::summarise(count= n()) %>%
+  pivot_wider(
+    id_cols = c(S_HOOD, study_id),
+    names_from = gender,
+    values_from = count,
+    names_prefix = "Observed_"
+  ) %>%
+  rowwise() %>% #this is to make sure the total is calculated correctly in the next line
+  dplyr::mutate(total = sum(c_across(Observed_Fem:Observed_non_conforming), na.rm=T)) %>% #calculate total observed, including observations where no one was observed!
+  mutate_at(vars(Observed_Fem, Observed_Masc, Observed_non_conforming, Observed_Unsure), ~replace_na(., 0)) %>% #replace NAs with 0s so that the calculated proportions return 0 and not NA
+  mutate(F_prop = Observed_Fem/total,
+         M_prop = Observed_Masc/total) %>%
+  select(S_HOOD, study_id, F_prop, M_prop, Observed_Fem, Observed_Masc, total)
+
+```
+
+## Plots
+
+### Scatter x = year, y = proportion
+```{r}
+# S_HOOD level ---------------------------------------------
+
+## filter dataframe so that there are the same 11 S_HOODS
+filt_SPL_FM_prop_shood <- SPL_FM_prop_shood %>% filter(S_HOOD %in% neighborhoods_with_both_years)
+
+## fem prop
+F_SPL <-
+filt_SPL_FM_prop_shood %>%
+  ggplot(., aes(x = study_id, y = F_prop, colour = S_HOOD)) +
+  geom_point() +
+  geom_line(aes(group = S_HOOD)) +
+  coord_cartesian(ylim = c(0, 1)) +
+  labs(x = "Year", y = "Proportion of women", title = "SPL Data") +
+  scale_x_discrete(labels = c("2018", "2023"))
+
+
+## masc prop
+M_SPL <-
+  filt_SPL_FM_prop_shood %>%
+  ggplot(., aes(x = study_id, y = M_prop, colour = S_HOOD)) +
+  geom_point() +
+  geom_line(aes(group = S_HOOD)) +
+  coord_cartesian(ylim = c(0, 1)) +
+  theme(legend.position = "none") +
+  labs(x = "Year", y = "Proportion of men", title = "SPL Data") +
+  scale_x_discrete(labels = c("2018", "2023"))
+
+```
+
+# Putting the plots side by side
+
+## Proportion female
+```{r}
+F_legend <- cowplot::get_legend(F_census)
+
+# Combine plots side by side without the legends
+F_combined_plot <- plot_grid(F_census + theme(legend.position = "none"), F_SPL + theme(legend.position = "none"), ncol = 2)
+               
+# Add the legend to the combined plot at the bottom
+F_combined_plot_with_legend <- plot_grid(F_combined_plot, NULL, F_legend, ncol = 3, rel_widths = c(2, 0.05, 0.5))
+
+F_combined_plot_with_legend
+
+ggsave(filename = "census+SPL_F_prop_scatterconnect.png", path = here("Visualization"), bg="white", width = 7, height = 7)
+```
+
+## Proportion male
+```{r}
+M_legend <- cowplot::get_legend(M_census)
+
+# Combine plots side by side without the legends
+M_combined_plot <- plot_grid(M_census + theme(legend.position = "none"), M_SPL + theme(legend.position = "none"), ncol = 2)
+               
+# Add the legend to the combined plot at the bottom
+M_combined_plot_with_legend <- plot_grid(M_combined_plot, NULL, M_legend, ncol = 3, rel_widths = c(2, 0.05, 0.5))
+
+M_combined_plot_with_legend
+
+ggsave(filename = "census+SPL_F_prop_scatterconnect.png", path = here("Visualization"), bg="white", width = 7, height = 7)
+```
+
