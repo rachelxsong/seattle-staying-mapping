@@ -81,12 +81,12 @@ merged2023 <- distinct(merged2023, unique_staying_id, .keep_all = TRUE)
 # Creating one big dataframe for 2018 and 2023 data
 SPL_1823_demographics <- rbind(merged2018, merged2023)
 ##Cleaning it up
-SPL_1823_demographics <- SPL_1823_demographics %>% dplyr::select(neighborhood, unique_staying_id:ACS.Vintage)
+SPL_1823_demographics <- SPL_1823_demographics %>% dplyr::select(neighborhood:study_id, staying_time_start:ACS.Vintage) #not importing location_id bc it's too granular and innaccurate now
 ```
 
 
 ```{r}
 ##Saving it
-write.csv(SPL_1823_demographics, here("data", "SPL_1823_demographics2.csv"))
+write.csv(SPL_1823_demographics, here("data", "census_SPL_combined.csv"))
 ```
 
