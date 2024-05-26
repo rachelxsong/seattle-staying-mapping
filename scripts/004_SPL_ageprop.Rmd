@@ -1,0 +1,344 @@
+---
+title: "004_SPL_ageprop"
+output: html_document
+date: "2024-05-20"
+---
+
+Create variable for age group proportions, plot dot maps
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Load required packages
+```{r}
+rm(list=ls())
+library(tidyverse)
+library(psych)
+library(dplyr)
+library(sf)
+library(here)
+library(plotly)
+```
+
+# Import data
+```{r}
+SPL_1823 <- read.csv(here("data","SPL_1823.csv"))
+SPL_1823_geo <- st_read(here("data", "SPL_1823_location.geojson")) # location_id shapefiles and lat/long coordinates
+SEA_map <- st_read(here("data/raw","04_SPL_Seattle_Map.geojson")) # base SEA neighborhood map
+```
+
+# Recode the age column 
+```{r}
+# inspect age col
+table(SPL_1823$staying_age, SPL_1823$study_id)
+# looks like in 2023 they collapsed 25-44 and 45-64 together into 25-64
+
+SPL_1823 <- SPL_1823 %>%
+  mutate(
+    age=recode(staying_age,
+                        "25-44"="25-64",
+                        "45-64"="25-64"))
+
+# table(SPL_1823$age)
+# table(SPL_1823$staying_age)
+```
+
+# Calculate age proportion by observation site (location_id)
+```{r}
+age_prop_locid <- SPL_1823 %>%
+  group_by(location_id, age, study_id) %>%
+  dplyr::summarise(count= n()) %>%
+  mutate(age = ifelse(age == "", "NA", age)) %>% #replace the empty strings with NA otherwise it won't pivot
+  pivot_wider(
+    id_cols = c(location_id, study_id),
+    names_from = age,
+    values_from = count) %>%
+  rowwise() %>% #this is to make sure the total is calculated correctly in the next line
+  dplyr::mutate(total = sum(`0-4`, `15-24`, `25-64`, `5-14`, `65+`, `NA`, na.rm=T)) %>% #calculate total observed
+  mutate_at(vars(`0-4`, `15-24`, `25-64`, `5-14`, `65+`, `NA`), ~replace_na(., 0)) %>% #replace NAs with 0s so that the calculated proportions return 0 and not NA
+  mutate(toddler_prop = `0-4`/total,
+         tween_prop = `5-14`/total,
+         ya_prop = `15-24`/total, #ya stands for young adult
+         adult_prop = `25-64`/total,
+         senior_prop = `65+`/total) %>%
+  select(location_id, study_id, toddler_prop, tween_prop, ya_prop, adult_prop, senior_prop, total)
+
+# append S_HOOD back
+age_prop_locid <- SPL_1823 %>%
+  select(location_id, S_HOOD) %>%
+  distinct() %>%
+  right_join(age_prop_locid, by = "location_id")
+```
+
+# Create map by dots
+
+## 2018 static map (dots represent each block face; color represent percentage of age group)
+
+```{r}
+# Filter 2018 data ----
+age_prop_18_locid <- age_prop_locid %>% filter(study_id == "2018_Seattle_Citywide")
+
+# Join location_id coordinates with 2018 filtered data ----
+age_prop_18_locid_geo <- left_join(age_prop_18_locid, SPL_1823_geo, by = "location_id")
+
+# Toddlers ----
+ggplot() +
+  geom_sf(data = SEA_map) + #plot base SEA neighborhood map
+  geom_point(data=age_prop_18_locid_geo,
+             aes(x=longitude, y=latitude, color = toddler_prop, alpha = 0.95),
+             shape=20,
+             size=3) + # add points
+  scale_color_gradientn(name="%: Toddler/Total",
+                        colours = c("slategray1","royalblue4"),
+                        limits = c(0, 0.1),
+                        breaks = c(0, 0.02, 0.04, 0.06, 0.08, 0.1)) + #Create the breaks
+  scale_alpha_continuous(guide = "none")+
+  labs(title = "2018 Percentage of Toddlers Staying by Observation Site") +
+  labs(fill="Observation Sites")
+
+ggsave(filename = "2018_toddler_prop_map_dot.png", path = here("Visualization"), bg="white", width = 7, height = 7)
+
+# Tween ----
+ggplot() +
+  geom_sf(data = SEA_map) + #plot base SEA neighborhood map
+  geom_point(data=age_prop_18_locid_geo,
+             aes(x=longitude, y=latitude, color = tween_prop, alpha = 0.95),
+             shape=20,
+             size=3) + # add points
+  scale_color_gradientn(name="%: Tween/Total",
+                        colours = c("slategray1","royalblue4"),
+                        limits = c(0, 0.2),
+                        breaks = c(0, 0.05, 0.10, 0.15, 0.20)) + #Create the breaks
+  scale_alpha_continuous(guide = "none")+
+  labs(title = "2018 Percentage of Tweens Staying by Observation Site") +
+  labs(fill="Observation Sites")
+
+ggsave(filename = "2018_tween_prop_map_dot.png", path = here("Visualization"), bg="white", width = 7, height = 7)
+
+
+# Young Adults  ----
+ggplot() +
+  geom_sf(data = SEA_map) + #plot base SEA neighborhood map
+  geom_point(data=age_prop_18_locid_geo,
+             aes(x=longitude, y=latitude, color = ya_prop, alpha = 0.95),
+             shape=20,
+             size=3) + # add points
+  scale_color_gradientn(name="%: Young Adults/Total",
+                        colours = c("slategray1","royalblue4"),
+                        limits = c(0, 0.5),
+                        breaks = c(0, 0.1, 0.2, 0.3, 0.4, 0.5)) + #Create the breaks
+  scale_alpha_continuous(guide = "none")+
+  labs(title = "2018 Percentage of Young Adults Staying by Observation Site") +
+  labs(fill="Observation Sites")
+
+ggsave(filename = "2018_ya_prop_map_dot.png", path = here("Visualization"), bg="white", width = 7, height = 7)
+
+
+# Adults  ----
+ggplot() +
+  geom_sf(data = SEA_map) + #plot base SEA neighborhood map
+  geom_point(data=age_prop_18_locid_geo,
+             aes(x=longitude, y=latitude, color = adult_prop, alpha = 0.95),
+             shape=20,
+             size=3) + # add points
+  scale_color_gradientn(name="%: Adults/Total",
+                        colours = c("slategray1","royalblue4"),
+                        limits = c(0, 1),
+                        breaks = c(0, 0.2, 0.4, 0.6, 0.8, 1.0)) + #Create the breaks
+  scale_alpha_continuous(guide = "none")+
+  labs(title = "2018 Percentage of Adults Staying by Observation Site") +
+  labs(fill="Observation Sites")
+
+ggsave(filename = "2018_adult_prop_map_dot.png", path = here("Visualization"), bg="white", width = 7, height = 7)
+
+
+# Senior  ----
+ggplot() +
+  geom_sf(data = SEA_map) + #plot base SEA neighborhood map
+  geom_point(data=age_prop_18_locid_geo,
+             aes(x=longitude, y=latitude, color = senior_prop, alpha = 0.95),
+             shape=20,
+             size=3) + # add points
+  scale_color_gradientn(name="%: Seniors/Total",
+                        colours = c("slategray1","royalblue4"),
+                        limits = c(0, 0.8),
+                        breaks = c(0, 0.2, 0.4, 0.6, 0.8)) + #Create the breaks
+  scale_alpha_continuous(guide = "none")+
+  labs(title = "2018 Percentage of Seniors Staying by Observation Site") +
+  labs(fill="Observation Sites")
+
+ggsave(filename = "2018_senior_prop_map_dot.png", path = here("Visualization"), bg="white", width = 7, height = 7)
+
+```
+
+## 2023 static map (dots represent each block face; color represent percentage of age group)
+
+```{r}
+# Filter 2023 data ----
+age_prop_23_locid <- age_prop_locid %>% filter(study_id == "2023_Seattle_Citywide")
+
+# Join location_id coordinates with 2018 filtered data ----
+age_prop_23_locid_geo <- left_join(age_prop_23_locid, SPL_1823_geo, by = "location_id")
+
+# Toddlers ----
+ggplot() +
+  geom_sf(data = SEA_map) + #plot base SEA neighborhood map
+  geom_point(data=age_prop_23_locid_geo,
+             aes(x=longitude, y=latitude, color = toddler_prop, alpha = 0.95),
+             shape=20,
+             size=3) + # add points
+  scale_color_gradientn(name="%: Toddler/Total",
+                        colours = c("slategray1","royalblue4"),
+                        limits = c(0, 0.1),
+                        breaks = c(0, 0.02, 0.04, 0.06, 0.08, 0.1)) + #Create the breaks
+  scale_alpha_continuous(guide = "none")+
+  labs(title = "2023 Percentage of Toddlers Staying by Observation Site") +
+  labs(fill="Observation Sites")
+
+ggsave(filename = "2023_toddler_prop_map_dot.png", path = here("Visualization"), bg="white", width = 7, height = 7)
+
+# Tween ----
+ggplot() +
+  geom_sf(data = SEA_map) + #plot base SEA neighborhood map
+  geom_point(data=age_prop_23_locid_geo,
+             aes(x=longitude, y=latitude, color = tween_prop, alpha = 0.95),
+             shape=20,
+             size=3) + # add points
+  scale_color_gradientn(name="%: Tween/Total",
+                        colours = c("slategray1","royalblue4"),
+                        limits = c(0, max(age_prop_23_locid$tween_prop)),
+                        breaks = c(0, 0.05, 0.10, 0.15, 0.20)) + #Create the breaks
+  scale_alpha_continuous(guide = "none")+
+  labs(title = "2023 Percentage of Tweens Staying by Observation Site") +
+  labs(fill="Observation Sites")
+
+ggsave(filename = "2023_tween_prop_map_dot.png", path = here("Visualization"), bg="white", width = 7, height = 7)
+
+
+# Young Adults  ----
+ggplot() +
+  geom_sf(data = SEA_map) + #plot base SEA neighborhood map
+  geom_point(data=age_prop_23_locid_geo,
+             aes(x=longitude, y=latitude, color = ya_prop, alpha = 0.95),
+             shape=20,
+             size=3) + # add points
+  scale_color_gradientn(name="%: Young Adults/Total",
+                        colours = c("slategray1","royalblue4"),
+                        limits = c(0, 0.5),
+                        breaks = c(0, 0.1, 0.2, 0.3, 0.4, 0.5)) + #Create the breaks
+  scale_alpha_continuous(guide = "none")+
+  labs(title = "2023 Percentage of Young Adults Staying by Observation Site") +
+  labs(fill="Observation Sites")
+
+ggsave(filename = "2023_ya_prop_map_dot.png", path = here("Visualization"), bg="white", width = 7, height = 7)
+
+
+# Adults  ----
+ggplot() +
+  geom_sf(data = SEA_map) + #plot base SEA neighborhood map
+  geom_point(data=age_prop_23_locid_geo,
+             aes(x=longitude, y=latitude, color = adult_prop, alpha = 0.95),
+             shape=20,
+             size=3) + # add points
+  scale_color_gradientn(name="%: Adults/Total",
+                        colours = c("slategray1","royalblue4"),
+                        limits = c(0, 1),
+                        breaks = c(0, 0.2, 0.4, 0.6, 0.8, 1.0)) + #Create the breaks
+  scale_alpha_continuous(guide = "none")+
+  labs(title = "2023 Percentage of Adults Staying by Observation Site") +
+  labs(fill="Observation Sites")
+
+ggsave(filename = "2023_adult_prop_map_dot.png", path = here("Visualization"), bg="white", width = 7, height = 7)
+
+
+# Senior  ----
+ggplot() +
+  geom_sf(data = SEA_map) + #plot base SEA neighborhood map
+  geom_point(data=age_prop_23_locid_geo,
+             aes(x=longitude, y=latitude, color = senior_prop, alpha = 0.95),
+             shape=20,
+             size=3) + # add points
+  scale_color_gradientn(name="%: Seniors/Total",
+                        colours = c("slategray1","royalblue4"),
+                        limits = c(0, 0.8),
+                        breaks = c(0, 0.2, 0.4, 0.6, 0.8)) + #Create the breaks
+  scale_alpha_continuous(guide = "none")+
+  labs(title = "2023 Percentage of Seniors Staying by Observation Site") +
+  labs(fill="Observation Sites")
+
+ggsave(filename = "2023_senior_prop_map_dot.png", path = here("Visualization"), bg="white", width = 7, height = 7)
+
+```
+
+# 2018 Interactive Plots 
+
+```{r}
+# using adults as base plot
+p <- ggplot() +
+  geom_sf(data = SEA_map) + #plot base SEA neighborhood map
+  geom_point(data=age_prop_18_locid_geo,
+             aes(x=longitude,
+                 y=latitude,
+                 color = adult_prop, 
+                 text = paste("Block Face: ", location_id, 
+                              "<br>Percentage of toddlers: ", round(toddler_prop,2), 
+                              "<br>Percentage of tweens: ", round(tween_prop,2),
+                              "<br>Percentage of young adults: ", round(ya_prop,2),
+                              "<br>Percentage of adults: ", round(adult_prop,2),
+                              "<br>Percentage of seniors: ", round(senior_prop,2),
+                              "<br>Total observation: ", total), 
+                 alpha = 0.95),
+             shape=20,
+             size=4) + # add points
+  scale_color_gradientn(name="%: Adult/Total", colours = c("slategray1","royalblue4"),
+                        breaks = c(0, 0.2, 0.4, 0.6, 0.8, 1),
+                        limits = c(0, 1)) +
+  scale_alpha_continuous(guide = "none")+
+  labs(title = "2018 Percentage of Adults Staying by Observation Site") +
+  labs(fill="Observation Sites")
+
+p <- ggplotly(p, tooltip = "text")
+
+htmlwidgets::saveWidget(p, here("Interactive", "2018_Age_interactive.html"), selfcontained = FALSE, libdir = "libs")
+
+```
+
+# 2023 Interactive Plots 
+
+```{r}
+# using adults as base plot
+p <- ggplot() +
+  geom_sf(data = SEA_map) + #plot base SEA neighborhood map
+  geom_point(data=age_prop_23_locid_geo,
+             aes(x=longitude, y=latitude, color = adult_prop, 
+                 text = paste("Block Face: ", location_id, 
+                              "<br>Percentage of toddlers: ", round(toddler_prop,2), 
+                              "<br>Percentage of tweens: ", round(tween_prop,2),
+                              "<br>Percentage of young adults: ", round(ya_prop,2),
+                              "<br>Percentage of adults: ", round(adult_prop,2),
+                              "<br>Percentage of seniors: ", round(senior_prop,2),
+                              "<br>Total observation: ", total), 
+                 alpha = 0.95),
+             shape=20, 
+             size=4) + # add points
+  scale_color_gradientn(name="%: Adult/Total", colours = c("slategray1","royalblue4"), #Specify the colors for each end 
+                        breaks = c(0, 0.2, 0.4, 0.6, 0.8, 1),
+                        limits = c(0, 1)) +
+  scale_alpha_continuous(guide = "none")+
+  labs(title = "2023 Percentage of Adults Staying by Observation Site") +
+  labs(fill="Observation Sites")
+
+p <- ggplotly(p, tooltip = "text")
+
+htmlwidgets::saveWidget(p, here("Interactive", "2023_Age_interactive.html"), selfcontained = FALSE, libdir = "libs")
+
+```
+
+
+
+
+
+
+
+
