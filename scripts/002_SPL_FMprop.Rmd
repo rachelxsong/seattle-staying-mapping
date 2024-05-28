@@ -121,7 +121,7 @@ ggplot() +
   labs(fill="Observation Sites")
 
 # Save Map_2018_dot in the Visualization folder ----
-ggsave(filename = "2018_F_prop_map_dot.png", path = here("Visualization"), bg="white", width = 7, height = 7)
+ggsave(filename = "2018_F_prop_map_dot.png", path = here("Visualization","gender"), bg="white", width = 7, height = 7)
 
 
 # Static plot for Proportion of Masc-presenting----
@@ -135,7 +135,7 @@ ggplot() +
   labs(fill="Observation Sites")
 
 # Save Map_2018_dot in the Visualization folder ----
-ggsave(filename = "2018_M_prop_map_dot.png", path = here("Visualization"), bg="white", width = 7, height = 7)
+ggsave(filename = "2018_M_prop_map_dot.png", path = here("Visualization","gender"), bg="white", width = 7, height = 7)
 
 
 ```
@@ -159,7 +159,7 @@ ggplot() +
 
 
 # Save Map_2023_dot in the Visualization folder ----
-ggsave(filename = "2023_F_prop_map_dot.png", path = here("Visualization"), bg="white", width = 7, height = 7)
+ggsave(filename = "2023_F_prop_map_dot.png", path = here("Visualization","gender"), bg="white", width = 7, height = 7)
 
 
 
@@ -174,7 +174,7 @@ ggplot() +
   labs(fill="Observation Sites")
 
 # Save Map_2018_dot in the Visualization folder ----
-ggsave(filename = "2023_M_prop_map_dot.png", path = here("Visualization"), bg="white", width = 7, height = 7)
+ggsave(filename = "2023_M_prop_map_dot.png", path = here("Visualization","gender"), bg="white", width = 7, height = 7)
 
 ```
 
