@@ -107,7 +107,7 @@ ggplot() +
   labs(fill="Observation Sites")
 
 # Save Map_2018_dot in the Visualization folder ----
-ggsave(filename = "2018_raceRatio_Asian_map_dot.png", path = here("Visualization"), bg="white", width = 7, height = 7)
+ggsave(filename = "2018_raceRatio_Asian_map_dot.png", path = here("Visualization/race"), bg="white", width = 7, height = 7)
 ```
 
 ## 2018 map - Black
@@ -127,7 +127,7 @@ ggplot() +
   labs(fill="Observation Sites")
 
 # Save Map_2018_dot in the Visualization folder ----
-ggsave(filename = "2018_raceRatio_Black_map_dot.png", path = here("Visualization"), bg="white", width = 7, height = 7)
+ggsave(filename = "2018_raceRatio_Black_map_dot.png", path = here("Visualization/race"), bg="white", width = 7, height = 7)
 ```
 
 
@@ -148,7 +148,7 @@ ggplot() +
   labs(fill="Observation Sites")
 
 # Save Map_2018_dot in the Visualization folder ----
-ggsave(filename = "2018_raceRatio_Latinx_map_dot.png", path = here("Visualization"), bg="white", width = 7, height = 7)
+ggsave(filename = "2018_raceRatio_Latinx_map_dot.png", path = here("Visualization/race"), bg="white", width = 7, height = 7)
 ```
 
 
@@ -169,7 +169,7 @@ ggplot() +
   labs(fill="Observation Sites")
 
 # Save Map_2018_dot in the Visualization folder ----
-ggsave(filename = "2018_raceRatio_Multi_map_dot.png", path = here("Visualization"), bg="white", width = 7, height = 7)
+ggsave(filename = "2018_raceRatio_Multi_map_dot.png", path = here("Visualization/race"), bg="white", width = 7, height = 7)
 ```
 
 
@@ -190,7 +190,7 @@ ggplot() +
   labs(fill="Observation Sites")
 
 # Save Map_2018_dot in the Visualization folder ----
-ggsave(filename = "2018_raceRatio_NatAm_map_dot.png", path = here("Visualization"), bg="white", width = 7, height = 7)
+ggsave(filename = "2018_raceRatio_NatAm_map_dot.png", path = here("Visualization/race"), bg="white", width = 7, height = 7)
 ```
 
 
@@ -212,5 +212,5 @@ ggplot() +
   labs(fill="Observation Sites")
 
 # Save Map_2018_dot in the Visualization folder ----
-ggsave(filename = "2018_raceRatio_White_map_dot.png", path = here("Visualization"), bg="white", width = 7, height = 7)
+ggsave(filename = "2018_raceRatio_White_map_dot.png", path = here("Visualization/race"), bg="white", width = 7, height = 7)
 ```
