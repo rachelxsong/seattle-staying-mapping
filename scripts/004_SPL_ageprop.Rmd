@@ -97,7 +97,7 @@ ggplot() +
   labs(title = "2018 Percentage of Toddlers Staying by Observation Site") +
   labs(fill="Observation Sites")
 
-ggsave(filename = "2018_toddler_prop_map_dot.png", path = here("Visualization"), bg="white", width = 7, height = 7)
+ggsave(filename = "2018_toddler_prop_map_dot.png", path = here("Visualization","age"), bg="white", width = 7, height = 7)
 
 # Tween ----
 ggplot() +
@@ -114,7 +114,7 @@ ggplot() +
   labs(title = "2018 Percentage of Tweens Staying by Observation Site") +
   labs(fill="Observation Sites")
 
-ggsave(filename = "2018_tween_prop_map_dot.png", path = here("Visualization"), bg="white", width = 7, height = 7)
+ggsave(filename = "2018_tween_prop_map_dot.png", path = here("Visualization","age"), bg="white", width = 7, height = 7)
 
 
 # Young Adults  ----
@@ -132,7 +132,7 @@ ggplot() +
   labs(title = "2018 Percentage of Young Adults Staying by Observation Site") +
   labs(fill="Observation Sites")
 
-ggsave(filename = "2018_ya_prop_map_dot.png", path = here("Visualization"), bg="white", width = 7, height = 7)
+ggsave(filename = "2018_ya_prop_map_dot.png", path = here("Visualization","age"), bg="white", width = 7, height = 7)
 
 
 # Adults  ----
@@ -150,7 +150,7 @@ ggplot() +
   labs(title = "2018 Percentage of Adults Staying by Observation Site") +
   labs(fill="Observation Sites")
 
-ggsave(filename = "2018_adult_prop_map_dot.png", path = here("Visualization"), bg="white", width = 7, height = 7)
+ggsave(filename = "2018_adult_prop_map_dot.png", path = here("Visualization","age"), bg="white", width = 7, height = 7)
 
 
 # Senior  ----
@@ -168,7 +168,7 @@ ggplot() +
   labs(title = "2018 Percentage of Seniors Staying by Observation Site") +
   labs(fill="Observation Sites")
 
-ggsave(filename = "2018_senior_prop_map_dot.png", path = here("Visualization"), bg="white", width = 7, height = 7)
+ggsave(filename = "2018_senior_prop_map_dot.png", path = here("Visualization","age"), bg="white", width = 7, height = 7)
 
 ```
 
@@ -196,7 +196,7 @@ ggplot() +
   labs(title = "2023 Percentage of Toddlers Staying by Observation Site") +
   labs(fill="Observation Sites")
 
-ggsave(filename = "2023_toddler_prop_map_dot.png", path = here("Visualization"), bg="white", width = 7, height = 7)
+ggsave(filename = "2023_toddler_prop_map_dot.png", path = here("Visualization","age"), bg="white", width = 7, height = 7)
 
 # Tween ----
 ggplot() +
@@ -213,7 +213,7 @@ ggplot() +
   labs(title = "2023 Percentage of Tweens Staying by Observation Site") +
   labs(fill="Observation Sites")
 
-ggsave(filename = "2023_tween_prop_map_dot.png", path = here("Visualization"), bg="white", width = 7, height = 7)
+ggsave(filename = "2023_tween_prop_map_dot.png", path = here("Visualization","age"), bg="white", width = 7, height = 7)
 
 
 # Young Adults  ----
@@ -231,7 +231,7 @@ ggplot() +
   labs(title = "2023 Percentage of Young Adults Staying by Observation Site") +
   labs(fill="Observation Sites")
 
-ggsave(filename = "2023_ya_prop_map_dot.png", path = here("Visualization"), bg="white", width = 7, height = 7)
+ggsave(filename = "2023_ya_prop_map_dot.png", path = here("Visualization","age"), bg="white", width = 7, height = 7)
 
 
 # Adults  ----
@@ -249,7 +249,7 @@ ggplot() +
   labs(title = "2023 Percentage of Adults Staying by Observation Site") +
   labs(fill="Observation Sites")
 
-ggsave(filename = "2023_adult_prop_map_dot.png", path = here("Visualization"), bg="white", width = 7, height = 7)
+ggsave(filename = "2023_adult_prop_map_dot.png", path = here("Visualization","age"), bg="white", width = 7, height = 7)
 
 
 # Senior  ----
@@ -267,7 +267,7 @@ ggplot() +
   labs(title = "2023 Percentage of Seniors Staying by Observation Site") +
   labs(fill="Observation Sites")
 
-ggsave(filename = "2023_senior_prop_map_dot.png", path = here("Visualization"), bg="white", width = 7, height = 7)
+ggsave(filename = "2023_senior_prop_map_dot.png", path = here("Visualization","age"), bg="white", width = 7, height = 7)
 
 ```
 
