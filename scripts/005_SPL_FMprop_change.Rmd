@@ -45,6 +45,18 @@ SPL_1823 <- SPL_1823 %>%
 
 # table(SPL_1823$gender)
 # table(SPL_1823$staying_gender)
+
+SPL_1823 %>%
+  select(subject_id, study_id, location_id, gender) %>%
+  group_by(location_id, gender, study_id) %>%
+  dplyr::summarise(count= n()) %>%
+  pivot_wider(
+    id_cols = c(location_id, study_id),
+    names_from = gender,
+    values_from = count,
+    names_prefix = "Observed_"
+  ) %>%
+  head()
 ```
 
 # Calculate proportion women or men by neighborhood (S_HOOD)
